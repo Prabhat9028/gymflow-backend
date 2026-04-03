@@ -1,5 +1,4 @@
 package com.gymflow.controller;
-
 import com.gymflow.dto.Dtos.*;
 import com.gymflow.service.AttendanceService;
 import lombok.RequiredArgsConstructor;
@@ -8,40 +7,11 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
-@RestController
-@RequestMapping("/api/attendance")
-@RequiredArgsConstructor
+@RestController @RequestMapping("/api/attendance") @RequiredArgsConstructor
 public class AttendanceController {
-
-    private final AttendanceService attendanceService;
-
-    @PostMapping("/checkin")
-    public ResponseEntity<AttendanceResponse> checkIn(@RequestBody AttendanceRequest request) {
-        return ResponseEntity.ok(attendanceService.checkIn(request));
-    }
-
-    @PostMapping("/checkout/{memberId}")
-    public ResponseEntity<AttendanceResponse> checkOut(@PathVariable UUID memberId) {
-        return ResponseEntity.ok(attendanceService.checkOut(memberId));
-    }
-
-    @GetMapping
-    public ResponseEntity<PageResponse<AttendanceResponse>> getAll(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(attendanceService.getAllAttendance(page, size));
-    }
-
-    @GetMapping("/today")
-    public ResponseEntity<List<AttendanceResponse>> getToday() {
-        return ResponseEntity.ok(attendanceService.getTodayCheckIns());
-    }
-
-    @GetMapping("/member/{memberId}")
-    public ResponseEntity<PageResponse<AttendanceResponse>> getMemberAttendance(
-            @PathVariable UUID memberId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(attendanceService.getMemberAttendance(memberId, page, size));
-    }
+    private final AttendanceService svc;
+    @PostMapping("/checkin") public ResponseEntity<AttendanceResponse> checkIn(@RequestBody AttendanceRequest req, @RequestParam UUID branchId) { return ResponseEntity.ok(svc.checkIn(req, branchId)); }
+    @PostMapping("/checkout/{mid}") public ResponseEntity<AttendanceResponse> checkOut(@PathVariable UUID mid) { return ResponseEntity.ok(svc.checkOut(mid)); }
+    @GetMapping("/today") public ResponseEntity<List<AttendanceResponse>> today(@RequestParam UUID branchId) { return ResponseEntity.ok(svc.getToday(branchId)); }
+    @GetMapping public ResponseEntity<PageResponse<AttendanceResponse>> all(@RequestParam UUID branchId, @RequestParam(defaultValue="0") int page, @RequestParam(defaultValue="20") int size) { return ResponseEntity.ok(svc.getAll(branchId, page, size)); }
 }

@@ -1,128 +1,60 @@
 package com.gymflow.service;
-
 import com.gymflow.dto.Dtos.*;
 import com.gymflow.entity.*;
 import com.gymflow.repository.*;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.*;
+import java.util.*;
 
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.UUID;
-
-@Service
-@RequiredArgsConstructor
+@Service @RequiredArgsConstructor
 public class AttendanceService {
-
-    private final AttendanceRepository attendanceRepository;
-    private final MemberRepository memberRepository;
+    private final AttendanceRepository attRepo;
+    private final MemberRepository memberRepo;
 
     @Transactional
-    public AttendanceResponse checkIn(AttendanceRequest req) {
-        UUID memberId = req.getMemberId();
-        if (memberId == null && req.getMemberCode() != null) {
-            Member m = memberRepository.findByMemberCode(req.getMemberCode())
-                    .orElseThrow(() -> new RuntimeException("Member not found"));
-            memberId = m.getId();
-        }
-
-        Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new RuntimeException("Member not found"));
-
-        // Check for open check-in (auto checkout if exists)
-        var openCheckIn = attendanceRepository.findOpenCheckIn(member.getId());
-        if (openCheckIn.isPresent()) {
-            Attendance open = openCheckIn.get();
-            open.setCheckOutTime(LocalDateTime.now());
-            attendanceRepository.save(open);
-        }
-
-        Attendance attendance = Attendance.builder()
-                .member(member)
-                .checkInTime(LocalDateTime.now())
-                .verificationMethod(req.getVerificationMethod() != null ? req.getVerificationMethod() : "MANUAL")
-                .biometricMatchScore(req.getBiometricMatchScore())
-                .deviceId(req.getDeviceId())
-                .build();
-
-        attendance = attendanceRepository.save(attendance);
-        return toResponse(attendance);
+    public AttendanceResponse checkIn(AttendanceRequest req, UUID branchId) {
+        UUID mid = req.getMemberId();
+        if (mid == null && req.getMemberCode() != null)
+            mid = memberRepo.findByMemberCode(req.getMemberCode()).orElseThrow(() -> new RuntimeException("Member not found")).getId();
+        Member m = memberRepo.findById(mid).orElseThrow(() -> new RuntimeException("Member not found"));
+        attRepo.findOpenCheckIn(m.getId()).ifPresent(o -> { o.setCheckOutTime(LocalDateTime.now()); attRepo.save(o); });
+        Branch branch = m.getBranch();
+        Attendance a = Attendance.builder().member(m).branch(branch).checkInTime(LocalDateTime.now())
+            .verificationMethod(req.getVerificationMethod() != null ? req.getVerificationMethod() : "MANUAL")
+            .deviceId(req.getDeviceId()).build();
+        return toResponse(attRepo.save(a));
     }
-
     @Transactional
     public AttendanceResponse checkOut(UUID memberId) {
-        var open = attendanceRepository.findOpenCheckIn(memberId)
-                .orElseThrow(() -> new RuntimeException("No active check-in found"));
-
-        open.setCheckOutTime(LocalDateTime.now());
-        return toResponse(attendanceRepository.save(open));
+        var o = attRepo.findOpenCheckIn(memberId).orElseThrow(() -> new RuntimeException("No active check-in"));
+        o.setCheckOutTime(LocalDateTime.now()); return toResponse(attRepo.save(o));
     }
-
-    public PageResponse<AttendanceResponse> getAllAttendance(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        Page<Attendance> pg = attendanceRepository.findAllByOrderByCheckInTimeDesc(pageable);
-        List<AttendanceResponse> content = pg.getContent().stream().map(this::toResponse).toList();
-        return PageResponse.<AttendanceResponse>builder()
-                .content(content).page(pg.getNumber()).size(pg.getSize())
-                .totalElements(pg.getTotalElements()).totalPages(pg.getTotalPages())
-                .build();
+    public List<AttendanceResponse> getToday(UUID branchId) {
+        LocalDateTime s = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0);
+        return attRepo.findByBranchBetween(branchId, s, s.plusDays(1)).stream().map(this::toResponse).toList();
     }
-
-    public List<AttendanceResponse> getTodayCheckIns() {
-        LocalDateTime startOfDay = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0);
-        LocalDateTime endOfDay = startOfDay.plusDays(1);
-        return attendanceRepository.findCheckInsBetween(startOfDay, endOfDay).stream().map(this::toResponse).toList();
+    public long countToday(UUID branchId) {
+        LocalDateTime s = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0);
+        return attRepo.countByBranchBetween(branchId, s, s.plusDays(1));
     }
-
-    public long countTodayCheckIns() {
-        LocalDateTime startOfDay = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0);
-        LocalDateTime endOfDay = startOfDay.plusDays(1);
-        return attendanceRepository.countCheckInsBetween(startOfDay, endOfDay);
+    public long countBetween(UUID branchId, LocalDateTime start, LocalDateTime end) { return attRepo.countByBranchBetween(branchId, start, end); }
+    public List<AttendanceResponse> getRecent(UUID branchId, int limit) {
+        return attRepo.findRecentByBranch(branchId, PageRequest.of(0, limit)).stream().map(this::toResponse).toList();
     }
-
-    public long countCheckInsBetween(LocalDateTime start, LocalDateTime end) {
-        return attendanceRepository.countCheckInsBetween(start, end);
+    public PageResponse<AttendanceResponse> getAll(UUID branchId, int page, int size) {
+        Page<Attendance> pg = attRepo.findByBranchIdOrderByCheckInTimeDesc(branchId, PageRequest.of(page, size));
+        return PageResponse.<AttendanceResponse>builder().content(pg.getContent().stream().map(this::toResponse).toList())
+            .page(pg.getNumber()).size(pg.getSize()).totalElements(pg.getTotalElements()).totalPages(pg.getTotalPages()).build();
     }
-
-    public List<AttendanceResponse> getRecentCheckIns(int limit) {
-        return attendanceRepository.findRecentCheckIns(PageRequest.of(0, limit))
-                .stream().map(this::toResponse).toList();
-    }
-
-    public PageResponse<AttendanceResponse> getMemberAttendance(UUID memberId, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        Page<Attendance> pg = attendanceRepository.findByMemberIdOrderByCheckInTimeDesc(memberId, pageable);
-        List<AttendanceResponse> content = pg.getContent().stream().map(this::toResponse).toList();
-        return PageResponse.<AttendanceResponse>builder()
-                .content(content).page(pg.getNumber()).size(pg.getSize())
-                .totalElements(pg.getTotalElements()).totalPages(pg.getTotalPages())
-                .build();
-    }
-
     private AttendanceResponse toResponse(Attendance a) {
-        String duration = null;
-        if (a.getCheckOutTime() != null) {
-            Duration d = Duration.between(a.getCheckInTime(), a.getCheckOutTime());
-            long hours = d.toHours();
-            long mins = d.toMinutesPart();
-            duration = hours + "h " + mins + "m";
-        }
-
-        return AttendanceResponse.builder()
-                .id(a.getId())
-                .memberId(a.getMember().getId())
-                .memberName(a.getMember().getFirstName() + " " + a.getMember().getLastName())
-                .memberCode(a.getMember().getMemberCode())
-                .checkInTime(a.getCheckInTime())
-                .checkOutTime(a.getCheckOutTime())
-                .verificationMethod(a.getVerificationMethod())
-                .biometricMatchScore(a.getBiometricMatchScore())
-                .duration(duration)
-                .build();
+        String dur = null;
+        if (a.getCheckOutTime() != null) { Duration d = Duration.between(a.getCheckInTime(), a.getCheckOutTime()); dur = d.toHours() + "h " + d.toMinutesPart() + "m"; }
+        return AttendanceResponse.builder().id(a.getId()).memberId(a.getMember().getId())
+            .memberName(a.getMember().getFirstName() + " " + a.getMember().getLastName())
+            .memberCode(a.getMember().getMemberCode()).checkInTime(a.getCheckInTime())
+            .checkOutTime(a.getCheckOutTime()).verificationMethod(a.getVerificationMethod()).duration(dur).build();
     }
 }
