@@ -59,5 +59,15 @@ public class SubscriptionService {
             .plan(s.getPlan() != null ? toPlan(s.getPlan()) : null).startDate(s.getStartDate()).endDate(s.getEndDate()).status(s.getStatus().name())
             .amountPaid(s.getAmountPaid()).daysRemaining(Math.max(0, ChronoUnit.DAYS.between(LocalDate.now(), s.getEndDate()))).build();
     }
-    private PaymentResponse toPay(Payment p) { return PaymentResponse.builder().id(p.getId()).memberId(p.getMember().getId()).memberName(p.getMember().getFirstName()+" "+p.getMember().getLastName()).amount(p.getAmount()).paymentMethod(p.getPaymentMethod()).status(p.getStatus().name()).transactionRef(p.getTransactionRef()).paymentDate(p.getPaymentDate()).build(); }
+    private PaymentResponse toPay(Payment p) {
+        String planName = null;
+        if (p.getSubscription() != null && p.getSubscription().getPlan() != null) planName = p.getSubscription().getPlan().getName();
+        return PaymentResponse.builder().id(p.getId()).memberId(p.getMember().getId())
+            .memberName(p.getMember().getFirstName()+" "+p.getMember().getLastName())
+            .amount(p.getAmount()).discountAmount(p.getDiscountAmount())
+            .amountPaid(p.getAmountPaid()).balanceAmount(p.getBalanceAmount())
+            .balanceDueDate(p.getBalanceDueDate()).paymentMethod(p.getPaymentMethod())
+            .status(p.getStatus().name()).transactionRef(p.getTransactionRef())
+            .paymentDate(p.getPaymentDate()).planName(planName).build();
+    }
 }

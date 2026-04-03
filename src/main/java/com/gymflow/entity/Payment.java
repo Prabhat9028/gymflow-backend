@@ -15,6 +15,10 @@ public class Payment {
     @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "subscription_id") private Subscription subscription;
     @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "branch_id") private Branch branch;
     @Column(nullable = false) private BigDecimal amount;
+    @Column(name = "discount_amount") private BigDecimal discountAmount;
+    @Column(name = "amount_paid") private BigDecimal amountPaid;
+    @Column(name = "balance_amount") private BigDecimal balanceAmount;
+    @Column(name = "balance_due_date") private LocalDate balanceDueDate;
     @Column(name = "payment_method") private String paymentMethod = "CASH";
     @Enumerated(EnumType.STRING) private PaymentStatus status = PaymentStatus.PAID;
     @Column(name = "transaction_ref") private String transactionRef;

@@ -58,36 +58,44 @@ public class ReportService {
     }
 
     public PendingPaymentsReport getPendingPaymentsReport(UUID branchId) {
-        // Find subscriptions where amountPaid < plan price
-        List<Subscription> allSubs = subRepo.findByBranchId(branchId);
+        // Use actual Payment records that have balance > 0
+        List<Payment> allPayments = payRepo.findByBranchId(branchId);
         List<PendingPaymentEntry> entries = new ArrayList<>();
         BigDecimal totalPendingAmt = BigDecimal.ZERO;
         BigDecimal overdueAmt = BigDecimal.ZERO;
         long pendingCount = 0, overdueCount = 0;
 
-        for (Subscription s : allSubs) {
-            if (s.getStatus() != Subscription.MembershipStatus.ACTIVE || s.getPlan() == null) continue;
-            BigDecimal planPrice = s.getPlan().getPrice();
-            BigDecimal paid = s.getAmountPaid() != null ? s.getAmountPaid() : BigDecimal.ZERO;
+        for (Payment p : allPayments) {
+            BigDecimal balance = p.getBalanceAmount() != null ? p.getBalanceAmount() : BigDecimal.ZERO;
+            if (balance.compareTo(BigDecimal.ZERO) <= 0 && p.getStatus() == Payment.PaymentStatus.PAID) continue;
 
-            if (paid.compareTo(planPrice) < 0) {
-                BigDecimal balance = planPrice.subtract(paid);
-                boolean isOverdue = s.getStartDate().plusDays(7).isBefore(LocalDate.now());
-                String status = isOverdue ? "OVERDUE" : "PENDING";
+            // Check if it's overdue
+            boolean isOverdue = false;
+            if (p.getBalanceDueDate() != null && p.getBalanceDueDate().isBefore(LocalDate.now())) isOverdue = true;
+            if (p.getDueDate() != null && p.getDueDate().isBefore(LocalDate.now())) isOverdue = true;
+            if (p.getStatus() == Payment.PaymentStatus.OVERDUE) isOverdue = true;
 
-                entries.add(PendingPaymentEntry.builder()
-                    .memberId(s.getMember().getId())
-                    .memberName(s.getMember().getFirstName() + " " + s.getMember().getLastName())
-                    .memberCode(s.getMember().getMemberCode())
-                    .planName(s.getPlan().getName())
-                    .amountDue(planPrice).amountPaid(paid).balance(balance)
-                    .dueDate(s.getStartDate().plusDays(7))
-                    .status(status).build());
+            String status = isOverdue ? "OVERDUE" : p.getStatus().name();
+            String planName = (p.getSubscription() != null && p.getSubscription().getPlan() != null)
+                ? p.getSubscription().getPlan().getName() : "N/A";
 
-                totalPendingAmt = totalPendingAmt.add(balance);
-                pendingCount++;
-                if (isOverdue) { overdueAmt = overdueAmt.add(balance); overdueCount++; }
-            }
+            BigDecimal totalAmt = p.getAmount() != null ? p.getAmount() : BigDecimal.ZERO;
+            BigDecimal paid = p.getAmountPaid() != null ? p.getAmountPaid() : BigDecimal.ZERO;
+            if (balance.compareTo(BigDecimal.ZERO) == 0) balance = totalAmt.subtract(paid);
+            if (balance.compareTo(BigDecimal.ZERO) <= 0) continue;
+
+            entries.add(PendingPaymentEntry.builder()
+                .memberId(p.getMember().getId())
+                .memberName(p.getMember().getFirstName() + " " + p.getMember().getLastName())
+                .memberCode(p.getMember().getMemberCode())
+                .planName(planName)
+                .amountDue(totalAmt).amountPaid(paid).balance(balance)
+                .dueDate(p.getBalanceDueDate() != null ? p.getBalanceDueDate() : p.getDueDate())
+                .status(status).build());
+
+            totalPendingAmt = totalPendingAmt.add(balance);
+            pendingCount++;
+            if (isOverdue) { overdueAmt = overdueAmt.add(balance); overdueCount++; }
         }
 
         return PendingPaymentsReport.builder()

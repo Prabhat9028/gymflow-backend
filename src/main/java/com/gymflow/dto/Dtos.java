@@ -28,6 +28,13 @@ public class Dtos {
         private String email; private String phone; private String gender;
         private LocalDate dateOfBirth; private String address;
         private String emergencyContactName; private String emergencyContactPhone;
+        // Plan assignment during registration
+        private UUID planId;
+        private BigDecimal discountAmount;
+        private BigDecimal amountPaid;
+        private BigDecimal balanceAmount;
+        private LocalDate balanceDueDate;
+        private String paymentMode; // CASH, UPI, CARD, BANK_TRANSFER
     }
     @Data @NoArgsConstructor @AllArgsConstructor @Builder
     public static class MemberResponse {
@@ -62,8 +69,11 @@ public class Dtos {
     @Data @NoArgsConstructor @AllArgsConstructor @Builder
     public static class PaymentResponse {
         private UUID id; private UUID memberId; private String memberName;
-        private BigDecimal amount; private String paymentMethod; private String status;
-        private String transactionRef; private LocalDateTime paymentDate;
+        private BigDecimal amount; private BigDecimal discountAmount;
+        private BigDecimal amountPaid; private BigDecimal balanceAmount;
+        private LocalDate balanceDueDate; private String paymentMethod;
+        private String status; private String transactionRef;
+        private LocalDateTime paymentDate; private String planName;
     }
     @Data @NoArgsConstructor @AllArgsConstructor @Builder
     public static class TrainerRequest { @NotBlank private String firstName; @NotBlank private String lastName; private String email; private String phone; private String specialization; private String certification; private BigDecimal hourlyRate; }

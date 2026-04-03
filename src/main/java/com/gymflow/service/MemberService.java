@@ -6,7 +6,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
@@ -15,27 +17,80 @@ import java.util.concurrent.ThreadLocalRandom;
 public class MemberService {
     private final MemberRepository memberRepo;
     private final SubscriptionRepository subRepo;
+    private final MembershipPlanRepository planRepo;
+    private final PaymentRepository payRepo;
     private final BranchRepository branchRepo;
     private final CompanyRepository companyRepo;
 
     @Transactional
     public MemberResponse create(MemberRequest req, UUID branchId) {
         Branch branch = branchRepo.findById(branchId).orElseThrow(() -> new RuntimeException("Branch not found"));
-        Member m = Member.builder().memberCode(genCode()).firstName(req.getFirstName()).lastName(req.getLastName())
+
+        Member m = Member.builder()
+            .memberCode(genCode()).firstName(req.getFirstName()).lastName(req.getLastName())
             .email(req.getEmail()).phone(req.getPhone())
             .gender(req.getGender() != null ? Member.Gender.valueOf(req.getGender()) : null)
             .dateOfBirth(req.getDateOfBirth()).address(req.getAddress())
             .emergencyContactName(req.getEmergencyContactName()).emergencyContactPhone(req.getEmergencyContactPhone())
-            .company(branch.getCompany()).branch(branch).joinDate(LocalDate.now()).isActive(true).biometricEnrolled(false).build();
+            .company(branch.getCompany()).branch(branch).joinDate(LocalDate.now()).isActive(true).biometricEnrolled(false)
+            .build();
+        m = memberRepo.save(m);
+
+        // Auto-assign plan if provided during registration
+        if (req.getPlanId() != null) {
+            MembershipPlan plan = planRepo.findById(req.getPlanId())
+                .orElseThrow(() -> new RuntimeException("Plan not found"));
+
+            BigDecimal planPrice = plan.getPrice();
+            BigDecimal discount = req.getDiscountAmount() != null ? req.getDiscountAmount() : BigDecimal.ZERO;
+            BigDecimal finalAmount = planPrice.subtract(discount);
+            BigDecimal amountPaid = req.getAmountPaid() != null ? req.getAmountPaid() : finalAmount;
+            BigDecimal balance = finalAmount.subtract(amountPaid);
+            if (balance.compareTo(BigDecimal.ZERO) < 0) balance = BigDecimal.ZERO;
+
+            LocalDate startDate = LocalDate.now();
+            LocalDate endDate = startDate.plusDays(plan.getDurationDays());
+
+            // Create subscription
+            Subscription sub = subRepo.save(Subscription.builder()
+                .member(m).plan(plan).branch(branch)
+                .startDate(startDate).endDate(endDate)
+                .status(Subscription.MembershipStatus.ACTIVE)
+                .amountPaid(amountPaid)
+                .build());
+
+            // Create payment record with discount & balance tracking
+            String paymentMode = req.getPaymentMode() != null ? req.getPaymentMode() : "CASH";
+            Payment.PaymentStatus payStatus = balance.compareTo(BigDecimal.ZERO) > 0
+                ? Payment.PaymentStatus.PENDING : Payment.PaymentStatus.PAID;
+
+            payRepo.save(Payment.builder()
+                .member(m).subscription(sub).branch(branch)
+                .amount(finalAmount)
+                .discountAmount(discount)
+                .amountPaid(amountPaid)
+                .balanceAmount(balance)
+                .balanceDueDate(req.getBalanceDueDate())
+                .paymentMethod(paymentMode)
+                .status(payStatus)
+                .transactionRef("TXN" + System.currentTimeMillis())
+                .paymentDate(LocalDateTime.now())
+                .dueDate(req.getBalanceDueDate())
+                .build());
+        }
+
         return toResponse(memberRepo.save(m));
     }
+
     public MemberResponse get(UUID id) { return toResponse(memberRepo.findById(id).orElseThrow(() -> new RuntimeException("Member not found"))); }
+
     public PageResponse<MemberResponse> getAll(UUID branchId, int page, int size, String search) {
         Pageable p = PageRequest.of(page, size, Sort.by("createdAt").descending());
         Page<Member> pg = (search != null && !search.isBlank()) ? memberRepo.searchByBranch(branchId, search.trim(), p) : memberRepo.findByBranchIdAndIsActiveTrue(branchId, p);
         return PageResponse.<MemberResponse>builder().content(pg.getContent().stream().map(this::toResponse).toList())
             .page(pg.getNumber()).size(pg.getSize()).totalElements(pg.getTotalElements()).totalPages(pg.getTotalPages()).build();
     }
+
     @Transactional
     public MemberResponse update(UUID id, MemberRequest req) {
         Member m = memberRepo.findById(id).orElseThrow(() -> new RuntimeException("Member not found"));
@@ -50,6 +105,7 @@ public class MemberService {
         if (req.getEmergencyContactPhone() != null) m.setEmergencyContactPhone(req.getEmergencyContactPhone());
         return toResponse(memberRepo.save(m));
     }
+
     public void deactivate(UUID id) { Member m = memberRepo.findById(id).orElseThrow(); m.setIsActive(false); memberRepo.save(m); }
     public long countActive(UUID branchId) { return memberRepo.countByBranchIdAndIsActiveTrue(branchId); }
     public List<MemberResponse> getRecent(UUID branchId, int limit) {
@@ -77,5 +133,6 @@ public class MemberService {
             .activeSubscription(activeSub).branchId(m.getBranch() != null ? m.getBranch().getId() : null)
             .branchName(m.getBranch() != null ? m.getBranch().getName() : null).build();
     }
-    private String genCode() { String c; do { c = "GF" + String.format("%06d", ThreadLocalRandom.current().nextInt(1,999999)); } while (memberRepo.findByMemberCode(c).isPresent()); return c; }
+
+    private String genCode() { String c; do { c = "GF" + String.format("%06d", ThreadLocalRandom.current().nextInt(1, 999999)); } while (memberRepo.findByMemberCode(c).isPresent()); return c; }
 }
