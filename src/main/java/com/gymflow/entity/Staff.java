@@ -30,6 +30,7 @@ public class Staff {
     @Column(name = "join_date") private LocalDate joinDate;
     @Column(name = "shift_start") private LocalTime shiftStart;
     @Column(name = "shift_end") private LocalTime shiftEnd;
+    @Column(name = "photo_url") private String photoUrl;
     @Column(name = "is_active") private Boolean isActive = true;
     @CreationTimestamp @Column(name = "created_at") private LocalDateTime createdAt;
     @UpdateTimestamp @Column(name = "updated_at") private LocalDateTime updatedAt;

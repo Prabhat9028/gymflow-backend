@@ -17,4 +17,5 @@ public class SubscriptionController {
     @GetMapping("/subscriptions/member/{mid}") public ResponseEntity<List<SubscriptionResponse>> memberSubs(@PathVariable UUID mid) { return ResponseEntity.ok(svc.getMemberSubs(mid)); }
     @GetMapping("/subscriptions/expiring") public ResponseEntity<List<SubscriptionResponse>> expiring(@RequestParam UUID branchId, @RequestParam(defaultValue="7") int days) { return ResponseEntity.ok(svc.getExpiring(branchId, days)); }
     @GetMapping("/payments") public ResponseEntity<PageResponse<PaymentResponse>> payments(@RequestParam UUID branchId, @RequestParam(defaultValue="0") int page, @RequestParam(defaultValue="20") int size) { return ResponseEntity.ok(svc.getPayments(branchId, page, size)); }
+    @PostMapping("/payments/collect-balance") public ResponseEntity<PaymentResponse> collectBalance(@Valid @RequestBody CollectBalanceRequest req) { return ResponseEntity.ok(svc.collectBalance(req)); }
 }

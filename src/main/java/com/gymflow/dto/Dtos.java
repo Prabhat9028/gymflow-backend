@@ -59,7 +59,11 @@ public class Dtos {
         private List<String> features; private Integer maxFreezeDays; private Boolean isActive;
     }
     @Data @NoArgsConstructor @AllArgsConstructor
-    public static class SubscriptionRequest { @NotNull private UUID memberId; @NotNull private UUID planId; private LocalDate startDate; private BigDecimal amountPaid; private String paymentMethod; }
+    public static class SubscriptionRequest {
+        @NotNull private UUID memberId; @NotNull private UUID planId;
+        private LocalDate startDate; private BigDecimal amountPaid; private String paymentMethod;
+        private BigDecimal discountAmount; private BigDecimal balanceAmount; private LocalDate balanceDueDate;
+    }
     @Data @NoArgsConstructor @AllArgsConstructor @Builder
     public static class SubscriptionResponse {
         private UUID id; private UUID memberId; private String memberName; private PlanResponse plan;
@@ -68,13 +72,15 @@ public class Dtos {
     }
     @Data @NoArgsConstructor @AllArgsConstructor @Builder
     public static class PaymentResponse {
-        private UUID id; private UUID memberId; private String memberName;
+        private UUID id; private UUID memberId; private String memberName; private String memberPhone;
         private BigDecimal amount; private BigDecimal discountAmount;
         private BigDecimal amountPaid; private BigDecimal balanceAmount;
         private LocalDate balanceDueDate; private String paymentMethod;
         private String status; private String transactionRef;
-        private LocalDateTime paymentDate; private String planName;
+        private LocalDateTime paymentDate; private String planName; private BigDecimal planPrice;
     }
+    @Data @NoArgsConstructor @AllArgsConstructor
+    public static class CollectBalanceRequest { @NotNull private UUID paymentId; @NotNull private BigDecimal amount; private String paymentMethod; }
     @Data @NoArgsConstructor @AllArgsConstructor @Builder
     public static class TrainerRequest { @NotBlank private String firstName; @NotBlank private String lastName; private String email; private String phone; private String specialization; private String certification; private BigDecimal hourlyRate; }
     @Data @NoArgsConstructor @AllArgsConstructor @Builder
@@ -85,6 +91,7 @@ public class Dtos {
     @Data @NoArgsConstructor @AllArgsConstructor @Builder
     public static class AttendanceResponse {
         private UUID id; private UUID memberId; private String memberName; private String memberCode;
+        private String memberPhone; private LocalDate subscriptionEndDate; private String subscriptionStatus;
         private LocalDateTime checkInTime; private LocalDateTime checkOutTime;
         private String verificationMethod; private String duration;
     }
@@ -94,6 +101,7 @@ public class Dtos {
         private String email; private String password; private String phone; private String role;
         private String department; private String designation; private LocalDate dateOfBirth;
         private String address; private BigDecimal salary; private LocalTime shiftStart; private LocalTime shiftEnd;
+        private String photoUrl;
     }
     @Data @NoArgsConstructor @AllArgsConstructor @Builder
     public static class StaffResponse {
@@ -101,7 +109,7 @@ public class Dtos {
         private String email; private String phone; private String role; private String department;
         private String designation; private BigDecimal salary; private LocalDate joinDate;
         private LocalTime shiftStart; private LocalTime shiftEnd; private Boolean isActive;
-        private UUID branchId; private String branchName;
+        private UUID branchId; private String branchName; private String photoUrl;
     }
     @Data @NoArgsConstructor @AllArgsConstructor
     public static class StaffAttendanceRequest { private UUID staffId; private String staffCode; private String notes; }

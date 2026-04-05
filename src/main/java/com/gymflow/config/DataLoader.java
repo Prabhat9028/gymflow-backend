@@ -61,8 +61,15 @@ public class DataLoader implements CommandLineRunner {
             MembershipPlan.builder().company(co).branch(b3).name("Basic Monthly").description("Gym floor").durationDays(30).price(new BigDecimal("1799")).features(List.of("Gym Floor","Locker Room")).isActive(true).build(),
             MembershipPlan.builder().company(co).branch(b3).name("Premium Monthly").description("Full access").durationDays(30).price(new BigDecimal("3299")).features(List.of("Full Access","Classes","Sauna")).isActive(true).build()));
 
-        deviceRepo.save(BiometricDevice.builder().company(co).branch(b1).deviceSerial("ESSL001").deviceName("ESSL LX990 Andheri").deviceIp("192.168.1.201").devicePort(4370).deviceType("ESSL_LX990").isActive(true).build());
-        deviceRepo.save(BiometricDevice.builder().company(co).branch(b2).deviceSerial("ESSL002").deviceName("ESSL LX990 Bandra").deviceIp("192.168.1.202").devicePort(4370).deviceType("ESSL_LX990").isActive(true).build());
+        // Biometric devices — update IPs to match your actual ESSL/ZKTeco hardware
+        deviceRepo.save(BiometricDevice.builder().company(co).branch(b1)
+            .deviceSerial("ESSL001").deviceName("ESSL Biometric - Andheri")
+            .deviceIp("192.168.0.100").devicePort(4370).deviceType("ESSL_ZK")
+            .isActive(true).build());
+        deviceRepo.save(BiometricDevice.builder().company(co).branch(b2)
+            .deviceSerial("ESSL002").deviceName("ESSL Biometric - Bandra")
+            .deviceIp("192.168.0.101").devicePort(4370).deviceType("ESSL_ZK")
+            .isActive(true).build());
 
         log.info("Seeded: 1 company, 3 branches, 4 users, 3 staff, 7 plans, 2 devices");
     }

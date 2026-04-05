@@ -13,6 +13,7 @@ import java.util.*;
 public class AttendanceService {
     private final AttendanceRepository attRepo;
     private final MemberRepository memberRepo;
+    private final SubscriptionRepository subRepo;
 
     @Transactional
     public AttendanceResponse checkIn(AttendanceRequest req, UUID branchId) {
@@ -52,9 +53,18 @@ public class AttendanceService {
     private AttendanceResponse toResponse(Attendance a) {
         String dur = null;
         if (a.getCheckOutTime() != null) { Duration d = Duration.between(a.getCheckInTime(), a.getCheckOutTime()); dur = d.toHours() + "h " + d.toMinutesPart() + "m"; }
+        // Get subscription info
+        LocalDate subEnd = null; String subStatus = null;
+        try {
+            var activeSub = subRepo.findActiveMembership(a.getMember().getId(), Subscription.MembershipStatus.ACTIVE);
+            if (activeSub.isPresent()) { subEnd = activeSub.get().getEndDate(); subStatus = "ACTIVE"; }
+            else { subStatus = "EXPIRED"; }
+        } catch (Exception ignored) {}
         return AttendanceResponse.builder().id(a.getId()).memberId(a.getMember().getId())
             .memberName(a.getMember().getFirstName() + " " + a.getMember().getLastName())
-            .memberCode(a.getMember().getMemberCode()).checkInTime(a.getCheckInTime())
+            .memberCode(a.getMember().getMemberCode()).memberPhone(a.getMember().getPhone())
+            .subscriptionEndDate(subEnd).subscriptionStatus(subStatus)
+            .checkInTime(a.getCheckInTime())
             .checkOutTime(a.getCheckOutTime()).verificationMethod(a.getVerificationMethod()).duration(dur).build();
     }
 }

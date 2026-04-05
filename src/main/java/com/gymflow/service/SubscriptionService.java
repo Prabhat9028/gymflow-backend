@@ -59,15 +59,33 @@ public class SubscriptionService {
             .plan(s.getPlan() != null ? toPlan(s.getPlan()) : null).startDate(s.getStartDate()).endDate(s.getEndDate()).status(s.getStatus().name())
             .amountPaid(s.getAmountPaid()).daysRemaining(Math.max(0, ChronoUnit.DAYS.between(LocalDate.now(), s.getEndDate()))).build();
     }
+
+    @Transactional
+    public PaymentResponse collectBalance(CollectBalanceRequest req) {
+        Payment p = payRepo.findById(req.getPaymentId()).orElseThrow(() -> new RuntimeException("Payment not found"));
+        BigDecimal currentBalance = p.getBalanceAmount() != null ? p.getBalanceAmount() : BigDecimal.ZERO;
+        if (currentBalance.compareTo(BigDecimal.ZERO) <= 0) throw new RuntimeException("No balance due");
+        BigDecimal collecting = req.getAmount();
+        if (collecting.compareTo(currentBalance) > 0) collecting = currentBalance;
+        BigDecimal newPaid = (p.getAmountPaid() != null ? p.getAmountPaid() : BigDecimal.ZERO).add(collecting);
+        BigDecimal newBalance = currentBalance.subtract(collecting);
+        p.setAmountPaid(newPaid);
+        p.setBalanceAmount(newBalance);
+        if (newBalance.compareTo(BigDecimal.ZERO) <= 0) { p.setStatus(Payment.PaymentStatus.PAID); p.setBalanceAmount(BigDecimal.ZERO); }
+        if (req.getPaymentMethod() != null) p.setPaymentMethod(req.getPaymentMethod());
+        return toPay(payRepo.save(p));
+    }
+
     private PaymentResponse toPay(Payment p) {
-        String planName = null;
-        if (p.getSubscription() != null && p.getSubscription().getPlan() != null) planName = p.getSubscription().getPlan().getName();
+        String planName = null; BigDecimal planPrice = null;
+        if (p.getSubscription() != null && p.getSubscription().getPlan() != null) { planName = p.getSubscription().getPlan().getName(); planPrice = p.getSubscription().getPlan().getPrice(); }
         return PaymentResponse.builder().id(p.getId()).memberId(p.getMember().getId())
             .memberName(p.getMember().getFirstName()+" "+p.getMember().getLastName())
+            .memberPhone(p.getMember().getPhone())
             .amount(p.getAmount()).discountAmount(p.getDiscountAmount())
             .amountPaid(p.getAmountPaid()).balanceAmount(p.getBalanceAmount())
             .balanceDueDate(p.getBalanceDueDate()).paymentMethod(p.getPaymentMethod())
             .status(p.getStatus().name()).transactionRef(p.getTransactionRef())
-            .paymentDate(p.getPaymentDate()).planName(planName).build();
+            .paymentDate(p.getPaymentDate()).planName(planName).planPrice(planPrice).build();
     }
 }

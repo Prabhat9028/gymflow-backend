@@ -16,6 +16,7 @@ public class MemberController {
 
     @PostMapping public ResponseEntity<MemberResponse> create(@Valid @RequestBody MemberRequest req, @RequestParam UUID branchId) { return ResponseEntity.ok(svc.create(req, branchId)); }
     @GetMapping public ResponseEntity<PageResponse<MemberResponse>> getAll(@RequestParam UUID branchId, @RequestParam(defaultValue="0") int page, @RequestParam(defaultValue="20") int size, @RequestParam(required=false) String search) { return ResponseEntity.ok(svc.getAll(branchId, page, size, search)); }
+    @GetMapping("/search-global") public ResponseEntity<PageResponse<MemberResponse>> searchGlobal(@RequestParam UUID branchId, @RequestParam String q, @RequestParam(defaultValue="0") int page, @RequestParam(defaultValue="20") int size) { return ResponseEntity.ok(svc.getAll(branchId, page, size, q)); }
     @GetMapping("/{id}") public ResponseEntity<MemberResponse> get(@PathVariable UUID id) { return ResponseEntity.ok(svc.get(id)); }
     @PutMapping("/{id}") public ResponseEntity<MemberResponse> update(@PathVariable UUID id, @Valid @RequestBody MemberRequest req) { return ResponseEntity.ok(svc.update(id, req)); }
     @DeleteMapping("/{id}") public ResponseEntity<Void> delete(@PathVariable UUID id) { svc.deactivate(id); return ResponseEntity.noContent().build(); }
