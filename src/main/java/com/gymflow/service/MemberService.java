@@ -32,6 +32,7 @@ public class MemberService {
             .gender(req.getGender() != null ? Member.Gender.valueOf(req.getGender()) : null)
             .dateOfBirth(req.getDateOfBirth()).address(req.getAddress())
             .emergencyContactName(req.getEmergencyContactName()).emergencyContactPhone(req.getEmergencyContactPhone())
+            .source(req.getSource()).counsellor(req.getCounsellor()).notes(req.getNotes())
             .company(branch.getCompany()).branch(branch).joinDate(LocalDate.now()).isActive(true).biometricEnrolled(false)
             .build();
         m = memberRepo.save(m);
@@ -131,7 +132,8 @@ public class MemberService {
             .emergencyContactPhone(m.getEmergencyContactPhone()).joinDate(m.getJoinDate()).isActive(m.getIsActive())
             .deviceUserId(m.getDeviceUserId()).biometricEnrolled(m.getBiometricEnrolled())
             .activeSubscription(activeSub).branchId(m.getBranch() != null ? m.getBranch().getId() : null)
-            .branchName(m.getBranch() != null ? m.getBranch().getName() : null).build();
+            .branchName(m.getBranch() != null ? m.getBranch().getName() : null)
+            .source(m.getSource()).counsellor(m.getCounsellor()).notes(m.getNotes()).build();
     }
 
     private String genCode() { String c; do { c = "GF" + String.format("%06d", ThreadLocalRandom.current().nextInt(1, 999999)); } while (memberRepo.findByMemberCode(c).isPresent()); return c; }

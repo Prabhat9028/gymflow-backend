@@ -17,4 +17,5 @@ public interface MemberRepository extends JpaRepository<Member, UUID> {
     long countByBranchIdAndIsActiveTrue(UUID branchId);
     @Query("SELECT m FROM Member m WHERE m.branch.id = :bid ORDER BY m.createdAt DESC")
     List<Member> findRecentByBranch(@Param("bid") UUID branchId, Pageable pageable);
+    boolean existsByPhoneAndBranchId(String phone, UUID branchId);
 }

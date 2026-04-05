@@ -36,6 +36,8 @@ public class DataLoader implements CommandLineRunner {
             .address("Bandra West, Mumbai").city("Mumbai").phone("+91 9876543212").email("bandra@maxoutgym.com").isActive(true).build());
         Branch b3 = branchRepo.save(Branch.builder().company(co).name("MaxOut Powai").code("MAXOUT-POW")
             .address("Hiranandani, Powai").city("Mumbai").phone("+91 9876543213").email("powai@maxoutgym.com").isActive(true).build());
+        Branch b4 = branchRepo.save(Branch.builder().company(co).name("MaxOut Borivali").code("MAXOUT-BVI")
+            .address("Borivali West, Mumbai").city("Mumbai").phone("+91 9876543214").email("borivali@maxoutgym.com").isActive(true).build());
 
         User sa = userRepo.save(User.builder().company(co).email("admin@maxoutgym.com").passwordHash(pw).role(User.UserRole.SUPER_ADMIN).isActive(true).build());
         User u1 = userRepo.save(User.builder().company(co).branch(b1).email("rahul@maxoutgym.com").passwordHash(pw).role(User.UserRole.STAFF).isActive(true).build());
@@ -59,7 +61,17 @@ public class DataLoader implements CommandLineRunner {
             MembershipPlan.builder().company(co).branch(b2).name("Basic Monthly").description("Gym floor").durationDays(30).price(new BigDecimal("2199")).features(List.of("Gym Floor","Locker Room")).isActive(true).build(),
             MembershipPlan.builder().company(co).branch(b2).name("Premium Monthly").description("Full access").durationDays(30).price(new BigDecimal("3999")).features(List.of("Full Access","Classes","Sauna","Steam")).isActive(true).build(),
             MembershipPlan.builder().company(co).branch(b3).name("Basic Monthly").description("Gym floor").durationDays(30).price(new BigDecimal("1799")).features(List.of("Gym Floor","Locker Room")).isActive(true).build(),
-            MembershipPlan.builder().company(co).branch(b3).name("Premium Monthly").description("Full access").durationDays(30).price(new BigDecimal("3299")).features(List.of("Full Access","Classes","Sauna")).isActive(true).build()));
+            MembershipPlan.builder().company(co).branch(b3).name("Premium Monthly").description("Full access").durationDays(30).price(new BigDecimal("3299")).features(List.of("Full Access","Classes","Sauna")).isActive(true).build(),
+            // Borivali plans matching the Excel data
+            MembershipPlan.builder().company(co).branch(b4).name("Monthly").description("1 month gym membership").durationDays(30).price(new BigDecimal("4500")).features(List.of("Gym Floor","Locker Room")).isActive(true).build(),
+            MembershipPlan.builder().company(co).branch(b4).name("Quarterly").description("3 months gym membership").durationDays(90).price(new BigDecimal("7000")).features(List.of("Gym Floor","Locker Room","Classes")).isActive(true).build(),
+            MembershipPlan.builder().company(co).branch(b4).name("Half-Yearly").description("6 months gym membership").durationDays(180).price(new BigDecimal("10000")).features(List.of("Gym Floor","Classes","Locker Room")).isActive(true).build(),
+            MembershipPlan.builder().company(co).branch(b4).name("Annual").description("12 months gym membership").durationDays(365).price(new BigDecimal("15000")).features(List.of("Full Access","Classes","Locker Room","Sauna")).isActive(true).build()));
+
+        User u4 = userRepo.save(User.builder().company(co).branch(b4).email("prabhat@maxoutgym.com").passwordHash(pw).role(User.UserRole.ADMIN).isActive(true).build());
+        staffRepo.save(Staff.builder().user(u4).company(co).branch(b4).staffCode("STF004").firstName("Prabhat").lastName("Singh")
+            .email("prabhat@maxoutgym.com").phone("9876543214").role("ADMIN").department("Management").designation("Branch Manager")
+            .salary(new BigDecimal("40000")).shiftStart(LocalTime.of(8,0)).shiftEnd(LocalTime.of(17,0)).isActive(true).build());
 
         // Biometric devices — update IPs to match your actual ESSL/ZKTeco hardware
         deviceRepo.save(BiometricDevice.builder().company(co).branch(b1)

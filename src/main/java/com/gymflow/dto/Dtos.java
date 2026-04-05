@@ -35,6 +35,10 @@ public class Dtos {
         private BigDecimal balanceAmount;
         private LocalDate balanceDueDate;
         private String paymentMode; // CASH, UPI, CARD, BANK_TRANSFER
+        // Additional fields
+        private String source;
+        private String counsellor;
+        private String notes;
     }
     @Data @NoArgsConstructor @AllArgsConstructor @Builder
     public static class MemberResponse {
@@ -45,6 +49,7 @@ public class Dtos {
         private LocalDate joinDate; private Boolean isActive;
         private String deviceUserId; private Boolean biometricEnrolled;
         private SubscriptionResponse activeSubscription; private UUID branchId; private String branchName;
+        private String source; private String counsellor; private String notes;
     }
     @Data @NoArgsConstructor @AllArgsConstructor @Builder
     public static class PlanRequest {

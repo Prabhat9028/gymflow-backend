@@ -25,6 +25,9 @@ public class Member {
     @Column(name = "emergency_contact_name") private String emergencyContactName;
     @Column(name = "emergency_contact_phone") private String emergencyContactPhone;
     @Column(name = "photo_url") private String photoUrl;
+    @Column(name = "source") private String source;
+    @Column(name = "counsellor") private String counsellor;
+    @Column(name = "notes", length = 1000) private String notes;
     @Column(name = "device_user_id") private String deviceUserId;
     @Column(name = "biometric_enrolled") private Boolean biometricEnrolled = false;
     @Column(name = "join_date") private LocalDate joinDate;
