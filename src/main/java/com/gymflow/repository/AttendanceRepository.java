@@ -19,6 +19,7 @@ public interface AttendanceRepository extends JpaRepository<Attendance, UUID> {
     Page<Attendance> findByBranchIdOrderByCheckInTimeDesc(UUID branchId, Pageable pageable);
     @Query("SELECT a FROM Attendance a WHERE a.branch.id = :bid ORDER BY a.checkInTime DESC")
     List<Attendance> findRecentByBranch(@Param("bid") UUID branchId, Pageable pageable);
+
     @Query("SELECT COUNT(a) FROM Attendance a WHERE a.member.id = :mid AND a.checkInTime BETWEEN :start AND :end")
     long countByMemberBetween(@Param("mid") UUID memberId, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 

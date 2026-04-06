@@ -235,6 +235,41 @@ public class Dtos {
         private List<ChartData> riskDistribution;
     }
 
+    // ===== LEAD MANAGEMENT =====
+    @Data @NoArgsConstructor @AllArgsConstructor @Builder
+    public static class LeadRequest {
+        @NotBlank private String firstName; private String lastName;
+        @NotBlank private String phone; private String email; private String gender;
+        private String leadSource; private String campaignName; private String referredBy;
+        private String assignedTo; private UUID assignedStaffId;
+        private String interestedPlan; private LocalDate expectedJoinDate;
+        private LocalDateTime nextFollowUp; private String notes;
+    }
+    @Data @NoArgsConstructor @AllArgsConstructor @Builder
+    public static class LeadResponse {
+        private UUID id; private String firstName; private String lastName; private String phone; private String email; private String gender;
+        private String status; private String leadSource; private String campaignName; private String referredBy;
+        private String assignedTo; private String interestedPlan; private LocalDate expectedJoinDate;
+        private LocalDateTime nextFollowUp; private LocalDateTime lastContacted; private Integer followUpCount;
+        private String lostReason; private UUID convertedMemberId; private LocalDateTime convertedAt;
+        private String notes; private LocalDateTime createdAt;
+        private List<LeadActivityResponse> recentActivities;
+    }
+    @Data @NoArgsConstructor @AllArgsConstructor @Builder
+    public static class LeadStatusUpdate { @NotBlank private String status; private String notes; private String callResponse; private LocalDateTime nextFollowUp; private String performedBy; private String lostReason; }
+    @Data @NoArgsConstructor @AllArgsConstructor @Builder
+    public static class LeadActivityResponse { private UUID id; private String type; private String notes; private String performedBy; private String oldStatus; private String newStatus; private String callResponse; private LocalDateTime nextFollowUp; private LocalDateTime createdAt; }
+    @Data @NoArgsConstructor @AllArgsConstructor @Builder
+    public static class LeadDashboard {
+        private long total; private long newCount; private long contacted; private long followUp;
+        private long trial; private long negotiation; private long converted; private long lost;
+        private double conversionRate;
+        private List<ChartData> statusDistribution; private List<ChartData> sourceDistribution;
+        private List<CounsellorStats> counsellorStats; private List<LeadResponse> overdueFollowUps;
+    }
+    @Data @NoArgsConstructor @AllArgsConstructor @Builder
+    public static class CounsellorStats { private String name; private long totalLeads; private long converted; private double conversionRate; }
+
     @Data @NoArgsConstructor @AllArgsConstructor @Builder
     public static class PageResponse<T> { private List<T> content; private int page; private int size; private long totalElements; private int totalPages; }
 }
