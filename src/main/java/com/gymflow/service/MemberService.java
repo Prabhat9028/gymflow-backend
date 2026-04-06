@@ -26,6 +26,13 @@ public class MemberService {
     public MemberResponse create(MemberRequest req, UUID branchId) {
         Branch branch = branchRepo.findById(branchId).orElseThrow(() -> new RuntimeException("Branch not found"));
 
+        // Phone uniqueness check
+        if (req.getPhone() != null && !req.getPhone().isBlank()) {
+            memberRepo.findByPhoneAndBranchId(req.getPhone().trim(), branchId).ifPresent(existing -> {
+                throw new RuntimeException("Member with phone " + req.getPhone() + " already exists: " + existing.getFirstName() + " " + existing.getLastName());
+            });
+        }
+
         Member m = Member.builder()
             .memberCode(genCode()).firstName(req.getFirstName()).lastName(req.getLastName())
             .email(req.getEmail()).phone(req.getPhone())
@@ -55,6 +62,7 @@ public class MemberService {
             // Create subscription
             Subscription sub = subRepo.save(Subscription.builder()
                 .member(m).plan(plan).branch(branch)
+                .subType(Subscription.SubType.MEMBERSHIP)
                 .startDate(startDate).endDate(endDate)
                 .status(Subscription.MembershipStatus.ACTIVE)
                 .amountPaid(amountPaid)
@@ -114,12 +122,12 @@ public class MemberService {
     }
 
     private MemberResponse toResponse(Member m) {
-        SubscriptionResponse activeSub = null;
+        SubscriptionResponse activeMembership = null;
         try {
-            var s = subRepo.findActiveMembership(m.getId(), Subscription.MembershipStatus.ACTIVE);
+            var s = subRepo.findActiveSub(m.getId(), Subscription.MembershipStatus.ACTIVE, Subscription.SubType.MEMBERSHIP);
             if (s.isPresent()) {
                 Subscription sub = s.get();
-                activeSub = SubscriptionResponse.builder().id(sub.getId()).startDate(sub.getStartDate()).endDate(sub.getEndDate())
+                activeMembership = SubscriptionResponse.builder().id(sub.getId()).startDate(sub.getStartDate()).endDate(sub.getEndDate())
                     .status(sub.getStatus().name()).amountPaid(sub.getAmountPaid())
                     .daysRemaining(Math.max(0, ChronoUnit.DAYS.between(LocalDate.now(), sub.getEndDate())))
                     .plan(sub.getPlan() != null ? PlanResponse.builder().id(sub.getPlan().getId()).name(sub.getPlan().getName())
@@ -131,7 +139,7 @@ public class MemberService {
             .dateOfBirth(m.getDateOfBirth()).address(m.getAddress()).emergencyContactName(m.getEmergencyContactName())
             .emergencyContactPhone(m.getEmergencyContactPhone()).joinDate(m.getJoinDate()).isActive(m.getIsActive())
             .deviceUserId(m.getDeviceUserId()).biometricEnrolled(m.getBiometricEnrolled())
-            .activeSubscription(activeSub).branchId(m.getBranch() != null ? m.getBranch().getId() : null)
+            .activeMembership(activeMembership).branchId(m.getBranch() != null ? m.getBranch().getId() : null)
             .branchName(m.getBranch() != null ? m.getBranch().getName() : null)
             .source(m.getSource()).counsellor(m.getCounsellor()).notes(m.getNotes()).build();
     }

@@ -156,8 +156,8 @@ public class ImportController {
                             if (memberName.isEmpty()) continue;
                             if (memberContact.length() > 10) memberContact = memberContact.substring(0, 10);
 
-                            // Check duplicate by contact
-                            if (!memberContact.isEmpty() && memberRepo.existsByPhoneAndBranchId(memberContact, branchId)) {
+                            // Check duplicate by phone (unique identifier per branch)
+                            if (!memberContact.isEmpty() && memberRepo.findByPhoneAndBranchId(memberContact, branchId).isPresent()) {
                                 skipped++;
                                 continue;
                             }
@@ -202,6 +202,7 @@ public class ImportController {
 
                                     Subscription sub = subRepo.save(Subscription.builder()
                                             .member(member).plan(plan).branch(branch)
+                                            .subType(Subscription.SubType.MEMBERSHIP)
                                             .startDate(startDate).endDate(startDate.plusDays(durationDays))
                                             .status(Subscription.MembershipStatus.ACTIVE)
                                             .amountPaid(paid).build());

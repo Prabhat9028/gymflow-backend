@@ -18,6 +18,7 @@ public class MembershipPlan {
     @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "branch_id") private Branch branch;
     @Column(nullable = false) private String name;
     private String description;
+    @Enumerated(EnumType.STRING) @Column(name = "plan_type") private PlanType planType = PlanType.MEMBERSHIP;
     @Column(name = "duration_days", nullable = false) private Integer durationDays;
     @Column(nullable = false) private BigDecimal price;
     @JdbcTypeCode(SqlTypes.JSON) @Column(columnDefinition = "jsonb") private List<String> features;
@@ -25,4 +26,5 @@ public class MembershipPlan {
     @Column(name = "is_active") private Boolean isActive = true;
     @CreationTimestamp @Column(name = "created_at") private LocalDateTime createdAt;
     @UpdateTimestamp @Column(name = "updated_at") private LocalDateTime updatedAt;
+    public enum PlanType { MEMBERSHIP, PT }
 }

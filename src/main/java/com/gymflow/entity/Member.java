@@ -7,7 +7,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-@Entity @Table(name = "members")
+@Entity @Table(name = "members", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"phone", "branch_id"})
+})
 @Data @NoArgsConstructor @AllArgsConstructor @Builder
 public class Member {
     @Id @GeneratedValue(strategy = GenerationType.UUID) private UUID id;

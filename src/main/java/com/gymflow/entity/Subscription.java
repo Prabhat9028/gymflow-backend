@@ -14,12 +14,15 @@ public class Subscription {
     @Id @GeneratedValue(strategy = GenerationType.UUID) private UUID id;
     @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "member_id", nullable = false) private Member member;
     @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "plan_id") private MembershipPlan plan;
+    @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "trainer_id") private Trainer trainer;
     @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "branch_id") private Branch branch;
+    @Enumerated(EnumType.STRING) @Column(name = "sub_type") @Builder.Default private SubType subType = SubType.MEMBERSHIP;
     @Column(name = "start_date", nullable = false) private LocalDate startDate;
     @Column(name = "end_date", nullable = false) private LocalDate endDate;
-    @Enumerated(EnumType.STRING) private MembershipStatus status = MembershipStatus.ACTIVE;
+    @Enumerated(EnumType.STRING) @Builder.Default private MembershipStatus status = MembershipStatus.ACTIVE;
     @Column(name = "amount_paid") private BigDecimal amountPaid;
     @CreationTimestamp @Column(name = "created_at") private LocalDateTime createdAt;
     @UpdateTimestamp @Column(name = "updated_at") private LocalDateTime updatedAt;
     public enum MembershipStatus { ACTIVE, EXPIRED, FROZEN, CANCELLED }
+    public enum SubType { MEMBERSHIP, PT }
 }

@@ -42,6 +42,10 @@ public class AttendanceService {
         return attRepo.countByBranchBetween(branchId, s, s.plusDays(1));
     }
     public long countBetween(UUID branchId, LocalDateTime start, LocalDateTime end) { return attRepo.countByBranchBetween(branchId, start, end); }
+    public List<AttendanceResponse> getByDate(UUID branchId, LocalDate date) {
+        LocalDateTime s = date.atStartOfDay(), e = date.plusDays(1).atStartOfDay();
+        return attRepo.findByBranchBetween(branchId, s, e).stream().map(this::toResponse).toList();
+    }
     public List<AttendanceResponse> getRecent(UUID branchId, int limit) {
         return attRepo.findRecentByBranch(branchId, PageRequest.of(0, limit)).stream().map(this::toResponse).toList();
     }
@@ -56,7 +60,7 @@ public class AttendanceService {
         // Get subscription info
         LocalDate subEnd = null; String subStatus = null;
         try {
-            var activeSub = subRepo.findActiveMembership(a.getMember().getId(), Subscription.MembershipStatus.ACTIVE);
+            var activeSub = subRepo.findActiveSub(a.getMember().getId(), Subscription.MembershipStatus.ACTIVE, Subscription.SubType.MEMBERSHIP);
             if (activeSub.isPresent()) { subEnd = activeSub.get().getEndDate(); subStatus = "ACTIVE"; }
             else { subStatus = "EXPIRED"; }
         } catch (Exception ignored) {}
