@@ -52,6 +52,7 @@ public class SubscriptionService {
                 subRepo.save(s);
             }
         }
+
         Trainer trainer = null;
         if (req.getTrainerId() != null) trainer = trainerRepo.findById(req.getTrainerId()).orElse(null);
 

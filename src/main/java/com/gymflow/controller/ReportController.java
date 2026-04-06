@@ -33,7 +33,7 @@ public class ReportController {
         List<String> h = List.of("Member", "Code", "Phone", "Plan", "Plan Price", "Amount Paid", "End Date", "Days Left", "Status");
         List<List<String>> rows = new ArrayList<>();
         rows.add(List.of("--- SUMMARY ---","","","","","","","",""));
-        rows.add(List.of("Total Members", str(r.getTotalMembers()), "Expiring 7d", str(r.getExpiringIn7Days()), "Expiring 30d: " + r.getExpiringIn30Days()));
+        rows.add(List.of("Total Members", str(r.getTotalMembers()), "Active Subs", "Expiring 7d", str(r.getExpiringIn7Days()), "Expiring 30d: " + r.getExpiringIn30Days()));
         rows.add(List.of("--- EXPIRING MEMBERS ---","","","","","","","",""));
         if (r.getUpcomingExpiry() != null) for (var e : r.getUpcomingExpiry())
             rows.add(List.of(e.getMemberName(), e.getMemberCode(), str(e.getMemberPhone()), e.getPlanName(), str(e.getPlanPrice()), str(e.getAmountPaid()), str(e.getEndDate()), str(e.getDaysUntilExpiry()), e.getStatus()));
