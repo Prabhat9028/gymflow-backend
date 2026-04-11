@@ -11,13 +11,16 @@ import java.util.UUID;
 public class Dtos {
     @Data @NoArgsConstructor @AllArgsConstructor
     public static class LoginRequest { @NotBlank @Email private String email; @NotBlank private String password; }
+    @Data @NoArgsConstructor @AllArgsConstructor
+    public static class ChangePasswordRequest { @NotBlank private String currentPassword; @NotBlank private String newPassword; }
 
     @Data @NoArgsConstructor @AllArgsConstructor @Builder
     public static class AuthResponse {
         private String token; private String email; private String role; private UUID userId;
-        private UUID companyId; private String companyName;
+        private UUID companyId; private String companyName; private String companyLogo;
         private UUID branchId; private String branchName;
         private List<BranchInfo> branches;
+        private Boolean passwordChanged; private String theme;
     }
     @Data @NoArgsConstructor @AllArgsConstructor @Builder
     public static class BranchInfo { private UUID id; private String name; private String code; private String city; }
@@ -186,13 +189,14 @@ public class Dtos {
         private String phone;
         private String address;
         private String logoUrl;
+        private String theme;
         private String adminEmail;
         private String adminPassword;
     }
     @Data @NoArgsConstructor @AllArgsConstructor @Builder
     public static class CompanyResponse {
         private UUID id; private String name; private String code;
-        private String email; private String phone; private String address; private String logoUrl;
+        private String email; private String phone; private String address; private String logoUrl; private String theme;
         private Boolean isActive; private LocalDateTime createdAt;
         private long branchCount; private long memberCount; private long staffCount;
         private List<BranchResponse> branches;

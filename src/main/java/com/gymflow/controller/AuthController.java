@@ -15,4 +15,6 @@ public class AuthController {
     @PostMapping("/login") public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest req) { return ResponseEntity.ok(authService.login(req)); }
     @PostMapping("/switch-branch") public ResponseEntity<AuthResponse> switchBranch(Authentication auth, @RequestBody Map<String,String> body) {
         return ResponseEntity.ok(authService.switchBranch(auth.getName(), UUID.fromString(body.get("branchId")))); }
+    @PostMapping("/change-password") public ResponseEntity<AuthResponse> changePassword(Authentication auth, @Valid @RequestBody ChangePasswordRequest req) {
+        return ResponseEntity.ok(authService.changePassword(auth.getName(), req)); }
 }

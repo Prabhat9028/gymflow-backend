@@ -49,11 +49,12 @@ public class GymManagementService {
                 .phone(req.getPhone())
                 .address(req.getAddress())
                 .logoUrl(req.getLogoUrl())
+                .theme(req.getTheme() != null ? req.getTheme() : "orange")
                 .isActive(true)
                 .build();
         company = companyRepo.save(company);
 
-        // Create a Super Admin user for this gym if admin credentials provided
+        // Create an Admin user for this gym if admin credentials provided
         if (req.getAdminEmail() != null && !req.getAdminEmail().isBlank()) {
             if (userRepo.existsByEmail(req.getAdminEmail())) {
                 throw new RuntimeException("Admin email '" + req.getAdminEmail() + "' is already registered");
@@ -65,11 +66,12 @@ public class GymManagementService {
                     .company(company)
                     .email(req.getAdminEmail())
                     .passwordHash(passwordEncoder.encode(pw))
-                    .role(User.UserRole.SUPER_ADMIN)
+                    .role(User.UserRole.ADMIN)
                     .isActive(true)
+                    .passwordChanged(false)
                     .build());
 
-            log.info("Created Super Admin {} for gym {}", req.getAdminEmail(), company.getName());
+            log.info("Created Admin {} for gym {}", req.getAdminEmail(), company.getName());
         }
 
         log.info("Gym created: {} ({})", company.getName(), company.getCode());
@@ -181,6 +183,7 @@ public class GymManagementService {
                 .phone(c.getPhone())
                 .address(c.getAddress())
                 .logoUrl(c.getLogoUrl())
+                .theme(c.getTheme() != null ? c.getTheme() : "orange")
                 .isActive(c.getIsActive())
                 .createdAt(c.getCreatedAt())
                 .branchCount(branches.size())

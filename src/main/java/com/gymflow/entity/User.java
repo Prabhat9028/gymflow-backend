@@ -16,6 +16,7 @@ public class User {
     @Column(name = "password_hash", nullable = false) private String passwordHash;
     @Enumerated(EnumType.STRING) @Column(nullable = false) private UserRole role;
     @Column(name = "is_active") private Boolean isActive = true;
+    @Column(name = "password_changed") @Builder.Default private Boolean passwordChanged = false;
     @CreationTimestamp @Column(name = "created_at") private LocalDateTime createdAt;
     @UpdateTimestamp @Column(name = "updated_at") private LocalDateTime updatedAt;
     public enum UserRole { SUPER_ADMIN, ADMIN, STAFF, TRAINER, MEMBER }

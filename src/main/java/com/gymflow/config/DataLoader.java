@@ -39,10 +39,10 @@ public class DataLoader implements CommandLineRunner {
         Branch b4 = branchRepo.save(Branch.builder().company(co).name("MaxOut Borivali").code("MAXOUT-BVI")
             .address("Borivali West, Mumbai").city("Mumbai").phone("+91 9876543214").email("borivali@maxoutgym.com").isActive(true).build());
 
-        User sa = userRepo.save(User.builder().company(co).email("admin@maxoutgym.com").passwordHash(pw).role(User.UserRole.SUPER_ADMIN).isActive(true).build());
-        User u1 = userRepo.save(User.builder().company(co).branch(b1).email("rahul@maxoutgym.com").passwordHash(pw).role(User.UserRole.STAFF).isActive(true).build());
-        User u2 = userRepo.save(User.builder().company(co).branch(b2).email("priya@maxoutgym.com").passwordHash(pw).role(User.UserRole.ADMIN).isActive(true).build());
-        User u3 = userRepo.save(User.builder().company(co).branch(b3).email("amit@maxoutgym.com").passwordHash(pw).role(User.UserRole.ADMIN).isActive(true).build());
+        User sa = userRepo.save(User.builder().company(co).email("admin@maxoutgym.com").passwordHash(pw).role(User.UserRole.SUPER_ADMIN).isActive(true).passwordChanged(true).build());
+        User u1 = userRepo.save(User.builder().company(co).branch(b1).email("rahul@maxoutgym.com").passwordHash(pw).role(User.UserRole.STAFF).isActive(true).passwordChanged(true).build());
+        User u2 = userRepo.save(User.builder().company(co).branch(b2).email("priya@maxoutgym.com").passwordHash(pw).role(User.UserRole.ADMIN).isActive(true).passwordChanged(true).build());
+        User u3 = userRepo.save(User.builder().company(co).branch(b3).email("amit@maxoutgym.com").passwordHash(pw).role(User.UserRole.ADMIN).isActive(true).passwordChanged(true).build());
 
         staffRepo.save(Staff.builder().user(u1).company(co).branch(b1).staffCode("STF001").firstName("Rahul").lastName("Sharma")
             .email("rahul@maxoutgym.com").phone("9876543210").role("STAFF").department("Operations").designation("Front Desk")
@@ -68,7 +68,7 @@ public class DataLoader implements CommandLineRunner {
             MembershipPlan.builder().company(co).branch(b4).name("Half-Yearly").description("6 months gym membership").durationDays(180).price(new BigDecimal("10000")).features(List.of("Gym Floor","Classes","Locker Room")).isActive(true).build(),
             MembershipPlan.builder().company(co).branch(b4).name("Annual").description("12 months gym membership").durationDays(365).price(new BigDecimal("15000")).features(List.of("Full Access","Classes","Locker Room","Sauna")).isActive(true).build()));
 
-        User u4 = userRepo.save(User.builder().company(co).branch(b4).email("prabhat@maxoutgym.com").passwordHash(pw).role(User.UserRole.ADMIN).isActive(true).build());
+        User u4 = userRepo.save(User.builder().company(co).branch(b4).email("prabhat@maxoutgym.com").passwordHash(pw).role(User.UserRole.ADMIN).isActive(true).passwordChanged(true).build());
         staffRepo.save(Staff.builder().user(u4).company(co).branch(b4).staffCode("STF004").firstName("Prabhat").lastName("Singh")
             .email("prabhat@maxoutgym.com").phone("9876543214").role("ADMIN").department("Management").designation("Branch Manager")
             .salary(new BigDecimal("40000")).shiftStart(LocalTime.of(8,0)).shiftEnd(LocalTime.of(17,0)).isActive(true).build());
