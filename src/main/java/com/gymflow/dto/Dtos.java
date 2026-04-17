@@ -274,6 +274,73 @@ public class Dtos {
     @Data @NoArgsConstructor @AllArgsConstructor @Builder
     public static class CounsellorStats { private String name; private long totalLeads; private long converted; private double conversionRate; }
 
+    // ===== DIGITAL SIGNAGE =====
+    @Data @NoArgsConstructor @AllArgsConstructor @Builder
+    public static class SignageDeviceResponse {
+        private UUID id; private String deviceCode; private String deviceName; private String deviceId;
+        private String deviceModel; private String screenResolution; private String locationLabel;
+        private String status; private UUID playlistId; private String playlistName;
+        private LocalDateTime lastHeartbeat; private LocalDateTime lastSync;
+        private String ipAddress; private String appVersion; private Boolean isActive;
+        private UUID branchId; private String branchName;
+    }
+    @Data @NoArgsConstructor @AllArgsConstructor
+    public static class SignageDeviceRequest {
+        @NotBlank private String deviceName; private String locationLabel;
+    }
+    @Data @NoArgsConstructor @AllArgsConstructor
+    public static class DevicePairRequest {
+        @NotBlank private String deviceCode; @NotBlank private String deviceId;
+        private String deviceModel; private String screenResolution; private String appVersion;
+    }
+    @Data @NoArgsConstructor @AllArgsConstructor
+    public static class DeviceHeartbeatRequest {
+        @NotBlank private String deviceId; private String ipAddress; private String appVersion;
+        private String currentContentId; private String status;
+    }
+    @Data @NoArgsConstructor @AllArgsConstructor @Builder
+    public static class SignageContentResponse {
+        private UUID id; private String name; private String fileName; private String fileUrl;
+        private String thumbnailUrl; private String contentType; private String mimeType;
+        private Long fileSize; private Integer durationSeconds; private Integer width; private Integer height;
+        private String checksum; private Boolean isActive; private LocalDateTime createdAt;
+    }
+    @Data @NoArgsConstructor @AllArgsConstructor
+    public static class SignageContentRequest {
+        @NotBlank private String name; private String contentType;
+    }
+    @Data @NoArgsConstructor @AllArgsConstructor @Builder
+    public static class SignagePlaylistResponse {
+        private UUID id; private String name; private String description; private String mode;
+        private Boolean loopPlaylist; private Boolean scheduleEnabled;
+        private String scheduleStart; private String scheduleEnd; private String scheduleDays;
+        private Boolean isActive; private LocalDateTime createdAt;
+        private List<PlaylistItemResponse> items; private int deviceCount;
+    }
+    @Data @NoArgsConstructor @AllArgsConstructor
+    public static class SignagePlaylistRequest {
+        @NotBlank private String name; private String description; private String mode;
+        private Boolean loopPlaylist; private Boolean scheduleEnabled;
+        private String scheduleStart; private String scheduleEnd; private String scheduleDays;
+        private List<PlaylistItemInput> items;
+    }
+    @Data @NoArgsConstructor @AllArgsConstructor @Builder
+    public static class PlaylistItemResponse {
+        private UUID id; private UUID contentId; private String contentName; private String contentType;
+        private String fileUrl; private String thumbnailUrl; private String checksum;
+        private Long fileSize; private Integer durationSeconds; private Integer displayDuration;
+        private Integer sortOrder; private String transitionType;
+    }
+    @Data @NoArgsConstructor @AllArgsConstructor
+    public static class PlaylistItemInput {
+        @NotNull private UUID contentId; private Integer displayDuration; private String transitionType;
+    }
+    @Data @NoArgsConstructor @AllArgsConstructor @Builder
+    public static class DeviceSyncResponse {
+        private UUID playlistId; private String playlistName; private String mode; private Boolean loop;
+        private long serverTimestamp; private List<PlaylistItemResponse> items;
+    }
+
     @Data @NoArgsConstructor @AllArgsConstructor @Builder
     public static class PageResponse<T> { private List<T> content; private int page; private int size; private long totalElements; private int totalPages; }
 }

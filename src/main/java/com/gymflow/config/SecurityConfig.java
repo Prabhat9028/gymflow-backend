@@ -28,6 +28,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/iclock/**").permitAll()
                 .requestMatchers("/api/upload/files/**").permitAll()
+                .requestMatchers("/api/signage/device-api/**").permitAll()
+                .requestMatchers("/api/signage/media/**").permitAll()
                 .requestMatchers("/ws/**").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .anyRequest().authenticated())
