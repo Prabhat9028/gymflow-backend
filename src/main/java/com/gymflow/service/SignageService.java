@@ -95,7 +95,16 @@ public class SignageService {
     }
 
     public void deleteContent(UUID id) {
-        contentRepo.findById(id).ifPresent(c -> { c.setIsActive(false); contentRepo.save(c); });
+        contentRepo.findById(id).ifPresent(c -> {
+            c.setIsActive(false);
+            contentRepo.save(c);
+            // Delete physical file
+            if (c.getFileUrl() != null && c.getFileUrl().startsWith("/api/signage/media/")) {
+                String fileName = c.getFileUrl().replace("/api/signage/media/", "");
+                java.io.File file = new java.io.File("/app/uploads/signage", fileName);
+                if (file.exists()) file.delete();
+            }
+        });
     }
 
     // ==================== PLAYLISTS ====================

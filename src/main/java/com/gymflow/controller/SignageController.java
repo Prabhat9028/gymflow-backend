@@ -125,8 +125,14 @@ public class SignageController {
         svc.heartbeat(req); return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/device-api/sync/{deviceId}")
-    public ResponseEntity<DeviceSyncResponse> syncDevice(@PathVariable String deviceId) {
-        return ResponseEntity.ok(svc.getDeviceSync(deviceId));
+    @GetMapping("/device-api/sync")
+    public ResponseEntity<DeviceSyncResponse> syncDevice(@RequestParam String deviceId) {
+        try {
+            return ResponseEntity.ok(svc.getDeviceSync(deviceId));
+        } catch (RuntimeException e) {
+            // Return empty sync instead of error so TV app doesn't crash
+            return ResponseEntity.ok(DeviceSyncResponse.builder()
+                .serverTimestamp(System.currentTimeMillis()).items(List.of()).build());
+        }
     }
 }
