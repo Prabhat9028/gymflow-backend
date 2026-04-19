@@ -22,6 +22,7 @@ public class SignageService {
     private final PlaylistItemRepository itemRepo;
     private final BranchRepository branchRepo;
     private final CompanyRepository companyRepo;
+    private final StorageService storageService;
 
     // ==================== DEVICES ====================
 
@@ -101,11 +102,7 @@ public class SignageService {
         contentRepo.findById(id).ifPresent(c -> {
             c.setIsActive(false);
             contentRepo.save(c);
-            if (c.getFileUrl() != null && c.getFileUrl().startsWith("/api/signage/media/")) {
-                String fn = c.getFileUrl().replace("/api/signage/media/", "");
-                java.io.File file = new java.io.File("/app/uploads/signage", fn);
-                if (file.exists()) { file.delete(); log.info("Deleted file: {}", fn); }
-            }
+            storageService.delete(c.getFileUrl());
         });
     }
 

@@ -2,6 +2,7 @@ package com.gymflow.controller;
 
 import com.gymflow.dto.Dtos.*;
 import com.gymflow.service.SignageService;
+import com.gymflow.service.StorageService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -10,14 +11,13 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
-import java.math.BigInteger;
-import java.security.MessageDigest;
 import java.util.List;
 import java.util.UUID;
 
 @RestController @RequestMapping("/api/signage") @RequiredArgsConstructor
 public class SignageController {
     private final SignageService svc;
+    private final StorageService storage;
 
     // ===== DEVICES =====
     @GetMapping("/devices")
@@ -55,31 +55,13 @@ public class SignageController {
             @RequestParam(required = false) Integer durationSeconds,
             @RequestParam UUID branchId, @RequestParam UUID companyId) throws IOException {
 
-        // Calculate checksum BEFORE transferTo (which consumes the stream)
-        String checksum;
-        byte[] fileBytes = file.getBytes();
-        try {
-            MessageDigest md = MessageDigest.getInstance("MD5");
-            md.update(fileBytes);
-            checksum = new BigInteger(1, md.digest()).toString(16);
-        } catch (Exception e) { checksum = UUID.randomUUID().toString(); }
+        var result = storage.upload(file, contentType);
+        String originalName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "file";
 
-        // Save file locally
-        String dir = "/app/uploads/signage";
-        new File(dir).mkdirs();
-        String originalName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "file.mp4";
-        String ext = originalName.contains(".") ? originalName.substring(originalName.lastIndexOf('.')) : ".mp4";
-        String storedName = UUID.randomUUID() + ext;
-        File dest = new File(dir, storedName);
-        try (java.io.FileOutputStream fos = new java.io.FileOutputStream(dest)) {
-            fos.write(fileBytes);
-        }
-
-        String fileUrl = "/api/signage/media/" + storedName;
         return ResponseEntity.ok(svc.createContent(
             name != null && !name.isBlank() ? name : originalName,
-            contentType, originalName, fileUrl, file.getContentType(),
-            file.getSize(), durationSeconds, checksum, branchId, companyId));
+            contentType, originalName, result.fileUrl(), file.getContentType(),
+            result.fileSize(), durationSeconds, result.checksum(), branchId, companyId));
     }
 
     @DeleteMapping("/content/{id}")
