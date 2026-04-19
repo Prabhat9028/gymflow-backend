@@ -77,16 +77,19 @@ public class SignageService {
 
     // ==================== CONTENT ====================
 
+    @Transactional
     public SignageContentResponse createContent(String name, String contentType, String fileName,
             String fileUrl, String mimeType, Long fileSize, Integer durationSeconds,
             String checksum, UUID branchId, UUID companyId) {
+        Branch branch = branchRepo.findById(branchId).orElseThrow(() -> new RuntimeException("Branch not found"));
+        Company company = companyRepo.findById(companyId).orElseThrow(() -> new RuntimeException("Company not found"));
         SignageContent c = contentRepo.save(SignageContent.builder()
-            .company(Company.builder().id(companyId).build())
-            .branch(Branch.builder().id(branchId).build())
+            .company(company).branch(branch)
             .name(name).fileName(fileName).fileUrl(fileUrl).mimeType(mimeType)
             .contentType(SignageContent.ContentType.valueOf(contentType.toUpperCase()))
             .fileSize(fileSize).durationSeconds(durationSeconds)
             .checksum(checksum).isActive(true).build());
+        log.info("Content created: {} ({}) - {}", c.getName(), c.getContentType(), c.getFileUrl());
         return toContentResponse(c);
     }
 
@@ -98,11 +101,10 @@ public class SignageService {
         contentRepo.findById(id).ifPresent(c -> {
             c.setIsActive(false);
             contentRepo.save(c);
-            // Delete physical file
             if (c.getFileUrl() != null && c.getFileUrl().startsWith("/api/signage/media/")) {
-                String fileName = c.getFileUrl().replace("/api/signage/media/", "");
-                java.io.File file = new java.io.File("/app/uploads/signage", fileName);
-                if (file.exists()) file.delete();
+                String fn = c.getFileUrl().replace("/api/signage/media/", "");
+                java.io.File file = new java.io.File("/app/uploads/signage", fn);
+                if (file.exists()) { file.delete(); log.info("Deleted file: {}", fn); }
             }
         });
     }
@@ -111,9 +113,10 @@ public class SignageService {
 
     @Transactional
     public SignagePlaylistResponse createPlaylist(SignagePlaylistRequest req, UUID branchId, UUID companyId) {
+        Branch branch = branchRepo.findById(branchId).orElseThrow(() -> new RuntimeException("Branch not found"));
+        Company company = companyRepo.findById(companyId).orElseThrow(() -> new RuntimeException("Company not found"));
         SignagePlaylist p = playlistRepo.save(SignagePlaylist.builder()
-            .company(Company.builder().id(companyId).build())
-            .branch(Branch.builder().id(branchId).build())
+            .company(company).branch(branch)
             .name(req.getName()).description(req.getDescription())
             .mode(req.getMode() != null ? SignagePlaylist.PlaylistMode.valueOf(req.getMode()) : SignagePlaylist.PlaylistMode.SEQUENTIAL)
             .loopPlaylist(req.getLoopPlaylist() != null ? req.getLoopPlaylist() : true)
@@ -123,7 +126,7 @@ public class SignageService {
             .scheduleDays(req.getScheduleDays())
             .isActive(true).build());
 
-        if (req.getItems() != null) savePlaylistItems(p, req.getItems());
+        if (req.getItems() != null && !req.getItems().isEmpty()) savePlaylistItems(p, req.getItems());
         return toPlaylistResponse(p);
     }
 
@@ -159,18 +162,22 @@ public class SignageService {
 
     public DeviceSyncResponse getDeviceSync(String deviceId) {
         SignageDevice d = deviceRepo.findByDeviceId(deviceId)
-            .orElseThrow(() -> new RuntimeException("Device not found"));
+            .orElseThrow(() -> new RuntimeException("Device not found: " + deviceId));
         d.setLastSync(LocalDateTime.now());
         d.setStatus(SignageDevice.DeviceStatus.ONLINE);
         deviceRepo.save(d);
 
-        if (d.getActivePlaylist() == null) return DeviceSyncResponse.builder()
-            .serverTimestamp(System.currentTimeMillis()).items(List.of()).build();
+        if (d.getActivePlaylist() == null) {
+            log.info("Device {} has no playlist assigned", deviceId);
+            return DeviceSyncResponse.builder()
+                .serverTimestamp(System.currentTimeMillis()).items(List.of()).build();
+        }
 
         SignagePlaylist p = d.getActivePlaylist();
         List<PlaylistItemResponse> items = itemRepo.findByPlaylistIdOrderBySortOrderAsc(p.getId())
             .stream().map(this::toItemResponse).toList();
 
+        log.info("Sync for device {}: playlist={}, items={}", deviceId, p.getName(), items.size());
         return DeviceSyncResponse.builder()
             .playlistId(p.getId()).playlistName(p.getName())
             .mode(p.getMode().name()).loop(p.getLoopPlaylist())
@@ -193,7 +200,7 @@ public class SignageService {
     }
 
     private String generatePairingCode() {
-        String chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // No I,O,0,1 for readability
+        String chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
         SecureRandom rng = new SecureRandom();
         String code;
         do { code = IntStream.range(0, 6).mapToObj(i -> String.valueOf(chars.charAt(rng.nextInt(chars.length())))).reduce("", String::concat); }

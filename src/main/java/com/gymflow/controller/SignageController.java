@@ -54,25 +54,32 @@ public class SignageController {
             @RequestParam(defaultValue = "VIDEO") String contentType,
             @RequestParam(required = false) Integer durationSeconds,
             @RequestParam UUID branchId, @RequestParam UUID companyId) throws IOException {
-        // Save file locally (in production → S3)
-        String dir = "/app/uploads/signage";
-        new File(dir).mkdirs();
-        String ext = file.getOriginalFilename() != null ? file.getOriginalFilename().substring(file.getOriginalFilename().lastIndexOf('.')) : ".mp4";
-        String storedName = UUID.randomUUID() + ext;
-        File dest = new File(dir, storedName);
-        file.transferTo(dest);
 
-        // Calculate checksum
+        // Calculate checksum BEFORE transferTo (which consumes the stream)
         String checksum;
+        byte[] fileBytes = file.getBytes();
         try {
             MessageDigest md = MessageDigest.getInstance("MD5");
-            md.update(file.getBytes());
+            md.update(fileBytes);
             checksum = new BigInteger(1, md.digest()).toString(16);
         } catch (Exception e) { checksum = UUID.randomUUID().toString(); }
 
+        // Save file locally
+        String dir = "/app/uploads/signage";
+        new File(dir).mkdirs();
+        String originalName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "file.mp4";
+        String ext = originalName.contains(".") ? originalName.substring(originalName.lastIndexOf('.')) : ".mp4";
+        String storedName = UUID.randomUUID() + ext;
+        File dest = new File(dir, storedName);
+        try (java.io.FileOutputStream fos = new java.io.FileOutputStream(dest)) {
+            fos.write(fileBytes);
+        }
+
         String fileUrl = "/api/signage/media/" + storedName;
-        return ResponseEntity.ok(svc.createContent(name, contentType, file.getOriginalFilename(),
-            fileUrl, file.getContentType(), file.getSize(), durationSeconds, checksum, branchId, companyId));
+        return ResponseEntity.ok(svc.createContent(
+            name != null && !name.isBlank() ? name : originalName,
+            contentType, originalName, fileUrl, file.getContentType(),
+            file.getSize(), durationSeconds, checksum, branchId, companyId));
     }
 
     @DeleteMapping("/content/{id}")
@@ -81,15 +88,27 @@ public class SignageController {
     }
 
     // Serve media files
-    @GetMapping("/media/{filename}")
-    public ResponseEntity<org.springframework.core.io.Resource> serveMedia(@PathVariable String filename) throws IOException {
+    @GetMapping("/media/{filename:.+}")
+    public ResponseEntity<org.springframework.core.io.Resource> serveMedia(@PathVariable String filename) {
         File file = new File("/app/uploads/signage", filename);
         if (!file.exists()) return ResponseEntity.notFound().build();
         org.springframework.core.io.Resource resource = new org.springframework.core.io.FileSystemResource(file);
-        String mime = filename.endsWith(".mp4") ? "video/mp4" : filename.endsWith(".webm") ? "video/webm"
-            : filename.endsWith(".jpg") || filename.endsWith(".jpeg") ? "image/jpeg" : filename.endsWith(".png") ? "image/png" : "application/octet-stream";
-        return ResponseEntity.ok().header("Content-Type", mime)
-            .header("Accept-Ranges", "bytes").body(resource);
+        String mime = "application/octet-stream";
+        String fl = filename.toLowerCase();
+        if (fl.endsWith(".mp4")) mime = "video/mp4";
+        else if (fl.endsWith(".webm")) mime = "video/webm";
+        else if (fl.endsWith(".mov")) mime = "video/quicktime";
+        else if (fl.endsWith(".avi")) mime = "video/x-msvideo";
+        else if (fl.endsWith(".jpg") || fl.endsWith(".jpeg")) mime = "image/jpeg";
+        else if (fl.endsWith(".png")) mime = "image/png";
+        else if (fl.endsWith(".gif")) mime = "image/gif";
+        else if (fl.endsWith(".webp")) mime = "image/webp";
+        return ResponseEntity.ok()
+            .header("Content-Type", mime)
+            .header("Accept-Ranges", "bytes")
+            .header("Cache-Control", "public, max-age=86400")
+            .header("Access-Control-Allow-Origin", "*")
+            .body(resource);
     }
 
     // ===== PLAYLISTS =====
