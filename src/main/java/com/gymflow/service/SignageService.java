@@ -42,17 +42,20 @@ public class SignageService {
     }
 
     public SignageDeviceResponse pairDevice(DevicePairRequest req) {
+        log.info("pairDevice: code='{}', deviceId='{}'", req.getDeviceCode(), req.getDeviceId());
         SignageDevice d = deviceRepo.findByDeviceCode(req.getDeviceCode())
-            .orElseThrow(() -> new RuntimeException("Invalid pairing code"));
+            .orElseThrow(() -> new RuntimeException("Invalid pairing code: " + req.getDeviceCode()));
         if (d.getStatus() != SignageDevice.DeviceStatus.PENDING)
-            throw new RuntimeException("Device already paired");
+            throw new RuntimeException("Device already paired, status=" + d.getStatus());
         d.setDeviceId(req.getDeviceId());
         d.setDeviceModel(req.getDeviceModel());
         d.setScreenResolution(req.getScreenResolution());
         d.setAppVersion(req.getAppVersion());
         d.setStatus(SignageDevice.DeviceStatus.PAIRED);
         d.setLastHeartbeat(LocalDateTime.now());
-        return toDeviceResponse(deviceRepo.save(d));
+        SignageDevice saved = deviceRepo.save(d);
+        log.info("Device paired: id={}, deviceId='{}', name='{}'", saved.getId(), saved.getDeviceId(), saved.getDeviceName());
+        return toDeviceResponse(saved);
     }
 
     public void heartbeat(DeviceHeartbeatRequest req) {
@@ -158,14 +161,26 @@ public class SignageService {
     // ==================== DEVICE SYNC (Android TV API) ====================
 
     public DeviceSyncResponse getDeviceSync(String deviceId) {
-        SignageDevice d = deviceRepo.findByDeviceId(deviceId)
-            .orElseThrow(() -> new RuntimeException("Device not found: " + deviceId));
+        log.info("getDeviceSync called with deviceId: '{}'", deviceId);
+
+        var optDevice = deviceRepo.findByDeviceId(deviceId);
+        if (optDevice.isEmpty()) {
+            log.warn("Device NOT FOUND for deviceId: '{}'. Listing all devices...", deviceId);
+            deviceRepo.findAll().forEach(dev ->
+                log.warn("  DB device: id={}, deviceId='{}', code='{}', name='{}', status={}, hasPlaylist={}",
+                    dev.getId(), dev.getDeviceId(), dev.getDeviceCode(), dev.getDeviceName(),
+                    dev.getStatus(), dev.getActivePlaylist() != null));
+            return DeviceSyncResponse.builder()
+                .serverTimestamp(System.currentTimeMillis()).items(List.of()).build();
+        }
+
+        SignageDevice d = optDevice.get();
         d.setLastSync(LocalDateTime.now());
         d.setStatus(SignageDevice.DeviceStatus.ONLINE);
         deviceRepo.save(d);
 
         if (d.getActivePlaylist() == null) {
-            log.info("Device {} has no playlist assigned", deviceId);
+            log.info("Device '{}' found but NO playlist assigned", deviceId);
             return DeviceSyncResponse.builder()
                 .serverTimestamp(System.currentTimeMillis()).items(List.of()).build();
         }
@@ -174,7 +189,7 @@ public class SignageService {
         List<PlaylistItemResponse> items = itemRepo.findByPlaylistIdOrderBySortOrderAsc(p.getId())
             .stream().map(this::toItemResponse).toList();
 
-        log.info("Sync for device {}: playlist={}, items={}", deviceId, p.getName(), items.size());
+        log.info("Sync for device '{}': playlist='{}', items={}", deviceId, p.getName(), items.size());
         return DeviceSyncResponse.builder()
             .playlistId(p.getId()).playlistName(p.getName())
             .mode(p.getMode().name()).loop(p.getLoopPlaylist())

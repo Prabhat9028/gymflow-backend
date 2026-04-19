@@ -5,6 +5,7 @@ import com.gymflow.service.SignageService;
 import com.gymflow.service.StorageService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -14,7 +15,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
-@RestController @RequestMapping("/api/signage") @RequiredArgsConstructor
+@RestController @RequestMapping("/api/signage") @RequiredArgsConstructor @Slf4j
 public class SignageController {
     private final SignageService svc;
     private final StorageService storage;
@@ -69,28 +70,17 @@ public class SignageController {
         svc.deleteContent(id); return ResponseEntity.noContent().build();
     }
 
-    // Serve media files
+    // Serve local media files
     @GetMapping("/media/{filename:.+}")
     public ResponseEntity<org.springframework.core.io.Resource> serveMedia(@PathVariable String filename) {
         File file = new File("/app/uploads/signage", filename);
         if (!file.exists()) return ResponseEntity.notFound().build();
         org.springframework.core.io.Resource resource = new org.springframework.core.io.FileSystemResource(file);
-        String mime = "application/octet-stream";
         String fl = filename.toLowerCase();
-        if (fl.endsWith(".mp4")) mime = "video/mp4";
-        else if (fl.endsWith(".webm")) mime = "video/webm";
-        else if (fl.endsWith(".mov")) mime = "video/quicktime";
-        else if (fl.endsWith(".avi")) mime = "video/x-msvideo";
-        else if (fl.endsWith(".jpg") || fl.endsWith(".jpeg")) mime = "image/jpeg";
-        else if (fl.endsWith(".png")) mime = "image/png";
-        else if (fl.endsWith(".gif")) mime = "image/gif";
-        else if (fl.endsWith(".webp")) mime = "image/webp";
-        return ResponseEntity.ok()
-            .header("Content-Type", mime)
-            .header("Accept-Ranges", "bytes")
-            .header("Cache-Control", "public, max-age=86400")
-            .header("Access-Control-Allow-Origin", "*")
-            .body(resource);
+        String mime = fl.endsWith(".mp4") ? "video/mp4" : fl.endsWith(".webm") ? "video/webm" :
+            fl.endsWith(".jpg") || fl.endsWith(".jpeg") ? "image/jpeg" : fl.endsWith(".png") ? "image/png" : "application/octet-stream";
+        return ResponseEntity.ok().header("Content-Type", mime).header("Accept-Ranges", "bytes")
+            .header("Cache-Control", "public, max-age=86400").header("Access-Control-Allow-Origin", "*").body(resource);
     }
 
     // ===== PLAYLISTS =====
@@ -115,25 +105,28 @@ public class SignageController {
         svc.deletePlaylist(id); return ResponseEntity.noContent().build();
     }
 
-    // ===== DEVICE API (called by Android TV app) =====
+    // ===== DEVICE API (called by Android TV app — NO AUTH) =====
+
     @PostMapping("/device-api/pair")
     public ResponseEntity<SignageDeviceResponse> pairDevice(@Valid @RequestBody DevicePairRequest req) {
-        return ResponseEntity.ok(svc.pairDevice(req));
+        log.info("PAIR request: code={}, deviceId={}, model={}", req.getDeviceCode(), req.getDeviceId(), req.getDeviceModel());
+        var result = svc.pairDevice(req);
+        log.info("PAIR success: device={}, status={}", result.getDeviceName(), result.getStatus());
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping("/device-api/heartbeat")
     public ResponseEntity<Void> deviceHeartbeat(@RequestBody DeviceHeartbeatRequest req) {
-        svc.heartbeat(req); return ResponseEntity.ok().build();
+        log.debug("HEARTBEAT: deviceId={}", req.getDeviceId());
+        svc.heartbeat(req);
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/device-api/sync")
     public ResponseEntity<DeviceSyncResponse> syncDevice(@RequestParam String deviceId) {
-        try {
-            return ResponseEntity.ok(svc.getDeviceSync(deviceId));
-        } catch (RuntimeException e) {
-            // Return empty sync instead of error so TV app doesn't crash
-            return ResponseEntity.ok(DeviceSyncResponse.builder()
-                .serverTimestamp(System.currentTimeMillis()).items(List.of()).build());
-        }
+        log.info("SYNC request: deviceId={}", deviceId);
+        var result = svc.getDeviceSync(deviceId);
+        log.info("SYNC response: playlistId={}, items={}", result.getPlaylistId(), result.getItems() != null ? result.getItems().size() : 0);
+        return ResponseEntity.ok(result);
     }
 }
